@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>417 Elmwood — STR Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:    #1F3864;
+      --slate:   #2F5496;
+      --green:   #1D9E75;
+      --red:     #E24B4A;
+      --amber:   #BA7517;
+      --blue:    #378ADD;
+      --purple:  #534AB7;
+      --gray:    #888780;
+      --bg:      #F4F3EF;
+      --surface: #FFFFFF;
+      --border:  rgba(0,0,0,0.09);
+      --text:    #1a1a18;
+      --muted:   #6b6b67;
+      --faint:   #9a9a96;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: var(--navy);
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 60px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .logo span {
+      color: #F4B942;
+    }
+
+    .nav {
+      display: flex;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      color: rgba(255,255,255,0.6);
+      background: none;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .nav-btn:hover { color: #fff; background: rgba(255,255,255,0.08); }
+    .nav-btn.active { color: #fff; background: rgba(255,255,255,0.12); }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      background: rgba(255,255,255,0.07);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 5px 11px;
+      border-radius: 999px;
+    }
+
+    .status-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .status-dot.loading { background: #EF9F27; animation: pulse 1.2s infinite; }
+    .status-dot.error   { background: var(--red); }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+
+    .refresh-btn {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 6px;
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .refresh-btn:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+    /* ── Layout ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 2rem 2rem;
+    }
+
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 24px;
+      font-weight: 400;
+      color: var(--navy);
+      margin-bottom: 0.25rem;
+    }
+
+    .page-sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 1.75rem;
+    }
+
+    /* ── KPI Grid ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 1.5rem;
+    }
+
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .kpi-accent {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+    }
+
+    .kpi-label {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+      margin: 6px 0 10px;
+    }
+
+    .kpi-value {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      font-weight: 400;
+      line-height: 1;
+      margin-bottom: 5px;
+      color: var(--text);
+    }
+
+    .kpi-sub {
+      font-size: 11px;
+      color: var(--faint);
+    }
+
+    /* ── Panels ── */
+    .panel-grid {
+      display: grid;
+      grid-template-columns: minmax(0,1.6fr) minmax(0,1fr);
+      gap: 14px;
+      margin-bottom: 1.5rem;
+    }
+
+    .panel-grid-equal {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+      gap: 14px;
+      margin-bottom: 1.5rem;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .panel-title {
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Month rows ── */
+    .month-row {
+      display: flex;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .month-row:last-child { border-bottom: none; }
+    .month-name { color: var(--muted); min-width: 38px; font-size: 12px; }
+    .bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; }
+    .bar { height: 100%; border-radius: 2px; background: var(--green); }
+    .month-nights { font-size: 11px; color: var(--faint); min-width: 26px; text-align: right; }
+    .month-rev { font-weight: 500; min-width: 72px; text-align: right; font-size: 13px; }
+
+    /* ── Partner rows ── */
+    .partner-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .partner-row:last-child { border-bottom: none; }
+
+    .avatar {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 500;
+      flex-shrink: 0;
+    }
+
+    .p-name { font-size: 13px; font-weight: 500; }
+    .p-sub  { font-size: 11px; color: var(--faint); }
+    .p-amt  { font-family: 'DM Serif Display', serif; font-size: 16px; }
+    .p-roi  { font-size: 11px; color: var(--green); }
+
+    /* ── Tables ── */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      table-layout: fixed;
+    }
+
+    .data-table th {
+      text-align: left;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--faint);
+      padding: 0 0 10px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .data-table td {
+      padding: 9px 6px 9px 0;
+      border-bottom: 1px solid var(--border);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text);
+    }
+
+    .data-table tr:last-child td { border-bottom: none; }
+    .data-table tr:hover td { background: #fafaf8; }
+
+    .badge {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: var(--bg);
+    }
+
+    /* ── Cat bars ── */
+    .cat-row {
+      display: flex;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .cat-row:last-child { border-bottom: none; }
+    .cat-name { color: var(--muted); min-width: 92px; }
+    .cat-bar-wrap { flex: 1; margin: 0 10px; height: 4px; background: #eee; border-radius: 2px; overflow: hidden; }
+    .cat-bar { height: 100%; border-radius: 2px; }
+    .cat-amt { font-weight: 500; min-width: 68px; text-align: right; }
+
+    /* ── Calendar ── */
+    .cal-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+    }
+
+    .cal-header {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 3px;
+      margin-bottom: 6px;
+    }
+
+    .cal-day-name {
+      text-align: center;
+      font-size: 10px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--faint);
+      padding: 4px 0;
+    }
+
+    .cal-day {
+      aspect-ratio: 1;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      position: relative;
+      cursor: default;
+      background: #f0efeb;
+      color: var(--muted);
+    }
+
+    .cal-day.booked {
+      background: var(--green);
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .cal-day.today {
+      outline: 2px solid var(--navy);
+      outline-offset: -2px;
+    }
+
+    .cal-day.empty { background: transparent; }
+    .cal-day.other-month { opacity: 0.3; }
+
+    .cal-month-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .cal-month-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 16px;
+      color: var(--navy);
+    }
+
+    .cal-nav-btn {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 14px;
+      cursor: pointer;
+      color: var(--muted);
+      font-family: 'DM Sans', sans-serif;
+    }
+
+    .cal-nav-btn:hover { background: var(--bg); }
+
+    .cal-legend {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    .cal-legend-item { display: flex; align-items: center; gap: 5px; }
+    .cal-legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+
+    /* ── States ── */
+    .loading-state {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .spinner {
+      width: 26px; height: 26px;
+      border: 2px solid #ddd;
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .err-box {
+      background: #FEF2F2;
+      border: 1px solid #FCA5A5;
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: 13px;
+      color: #991B1B;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .empty-note {
+      font-size: 13px;
+      color: var(--faint);
+      padding: 0.75rem 0;
+      font-style: italic;
+    }
+
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+
+    /* ── Responsive ── */
+    @media (max-width: 700px) {
+      .panel-grid { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .nav-btn span { display: none; }
+      .container { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">417 <span>Elmwood</span></div>
+    <nav class="nav">
+      <button class="nav-btn active" onclick="showPage('dashboard', this)">Dashboard</button>
+      <button class="nav-btn" onclick="showPage('bookings', this)">Bookings</button>
+      <button class="nav-btn" onclick="showPage('expenses', this)">Expenses</button>
+      <button class="nav-btn" onclick="showPage('calendar', this)">Calendar</button>
+      <button class="nav-btn" onclick="showPage('partners', this)">Partners</button>
+      <button class="nav-btn" onclick="showPage('loans', this)">Loans</button>
+    </nav>
+  </div>
+  <div class="header-right">
+    <button class="refresh-btn" onclick="loadData()">↺ Refresh</button>
+    <div class="status-pill">
+      <div class="status-dot loading" id="statusDot"></div>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </div>
+</header>
+
+<!-- Dashboard Page -->
+<div id="page-dashboard" class="page active">
+  <div class="container">
+    <div class="page-title">Overview</div>
+    <div class="page-sub">417 Elmwood · Short-term rental · First booking 5/22/2026</div>
+    <div id="dash-err" style="display:none;" class="err-box"></div>
+    <div id="dash-content">
+      <div class="loading-state"><div class="spinner"></div><div style="font-size:13px;color:#9a9a96">Loading your data...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Bookings Page -->
+<div id="page-bookings" class="page">
+  <div class="container">
+    <div class="page-title">Bookings</div>
+    <div class="page-sub">All bookings logged in your Google Sheet</div>
+    <div class="panel">
+      <div id="bookings-content">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Expenses Page -->
+<div id="page-expenses" class="page">
+  <div class="container">
+    <div class="page-title">Expenses</div>
+    <div class="page-sub">Operating expenses and startup costs — all combined</div>
+    <div class="panel">
+      <div id="expenses-content">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Page -->
+<div id="page-calendar" class="page">
+  <div class="container">
+    <div class="page-title">Booking Calendar</div>
+    <div class="page-sub">Occupancy view — green days are booked</div>
+    <div class="panel">
+      <div id="calendar-content">
+        <div class="loading-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loans Page -->
+<div id="page-loans" class="page">
+  <div class="container">
+    <div class="page-title">Loan Tracker</div>
+    <div class="page-sub">Partner loan balances — auto-calculated from loan terms</div>
+    <div id="loans-content">
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+<div id="page-partners" class="page">
+  <div class="container">
+    <div class="page-title">Partner Summary</div>
+    <div class="page-sub">Financial breakdown per household — equal 1/3 split</div>
+    <div id="partners-content">
+      <div class="loading-state"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw095qquZbR6F23dtvx1OJsCrcOuyHFwoiYRfU8197XMp_Hy8mwhRV2YYoO8HSKydfdpQ/exec';
+
+  let DATA = { bookings: [], expenses: [], startup: [], loans: [] };
+
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const pn = s => parseFloat(String(s||'').replace(/[$,\s]/g,''))||0;
+  const pd = s => { if(!s) return null; const d=new Date(s); return isNaN(d.getTime())?null:d; };
+  const f$ = n => { if(isNaN(n)||n===null) return '—'; return (n<0?'-$':'$')+Math.round(Math.abs(n)).toLocaleString(); };
+  const fp = n => isNaN(n)?'—':Math.round(n*100)+'%';
+  const fDate = d => d?d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—';
+
+  const CC = {
+    Insurance:'#378ADD', Utilities:'#1D9E75', Cleaning:'#BA7517',
+    Supplies:'#534AB7', Maintenance:'#E24B4A', Other:'#888780'
+  };
+
+  const MONTHS = [
+    {n:'May',m:5,d:31},{n:'Jun',m:6,d:30},{n:'Jul',m:7,d:31},{n:'Aug',m:8,d:31},
+    {n:'Sep',m:9,d:30},{n:'Oct',m:10,d:31},{n:'Nov',m:11,d:30},{n:'Dec',m:12,d:31}
+  ];
+
+  // ── Navigation ────────────────────────────────────────────────────────────
+  function showPage(name, btn) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-'+name).classList.add('active');
+    if(btn) btn.classList.add('active');
+    renderPage(name);
+  }
+
+  // ── Data Fetch ────────────────────────────────────────────────────────────
+  async function loadData() {
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    dot.className = 'status-dot loading';
+    txt.textContent = 'Loading...';
+
+    try {
+      const resp = await fetch(SCRIPT_URL, { redirect: 'follow' });
+      if(!resp.ok) throw new Error('HTTP ' + resp.status);
+      const raw = await resp.text();
+      let json;
+      try { json = JSON.parse(raw); } catch(e) { throw new Error('Invalid response from script'); }
+      if(json.status === 'error') throw new Error(json.message);
+
+      const bkRows = (json.bookings||[]).filter(r=>r[0]&&String(r[0]).trim()&&String(r[0])!=='Booking #');
+      const exRows = (json.expenses||[]).filter(r=>r[0]&&r[3]&&String(r[0])!=='Date');
+      const suRows = (json.startup||[]).filter(r=>r[0]&&r[3]&&String(r[0])!=='Date');
+
+      DATA.bookings = bkRows.map(r=>({
+        id:r[0], guest:r[1]||'',
+        checkin:pd(r[2]), checkout:pd(r[3]),
+        nights:pn(r[4]), gross:pn(r[7]),
+        fee:pn(r[8]), net:pn(r[9]),
+        platform:r[10]||'', notes:r[11]||''
+      })).filter(b=>b.checkin);
+
+      DATA.expenses = exRows.map(r=>({
+        date:pd(r[0]), category:r[1]||'Other',
+        desc:r[2]||'', amount:pn(r[3]),
+        paidBy:r[4]||'', recurring:r[5]||''
+      })).filter(e=>e.amount>0);
+
+      DATA.startup = suRows.map(r=>({
+        date:pd(r[0]), category:r[1]||'Other',
+        desc:r[2]||'', amount:pn(r[3]),
+        paidBy:r[4]||'', type:'Startup'
+      })).filter(e=>e.amount>0);
+
+      // Hardcoded loan data — matches the loan tracker sheet
+      DATA.loans = [
+        { partner:'You & Brie',   borrower:'Kevin', original:40000, rate:0.2299, start:new Date('2025-04-15'), payment:969.51,  payoff:new Date('2032-02-01'), pmtsMade:12, notes:'Personal loan' },
+        { partner:'You & Brie',   borrower:'Brie',  original:20000, rate:0.1399, start:new Date('2025-07-05'), payment:375.70,  payoff:new Date('2032-06-01'), pmtsMade:10, notes:'Split 50/50 with Jenna' },
+        { partner:'Jenna & Dale', borrower:'Jenna', original:20000, rate:0.1399, start:new Date('2025-07-05'), payment:375.70,  payoff:new Date('2032-06-01'), pmtsMade:10, notes:'Split 50/50 with Brie' },
+        { partner:'Jenna & Dale', borrower:'Dale',  original:40000, rate:0.22,   start:new Date('2025-03-30'), payment:1156.30, payoff:new Date('2030-03-20'), pmtsMade:12, notes:'Confirmed' },
+      ].map(l => {
+        // Calculate remaining balance using FV formula
+        const monthlyRate = l.rate / 12;
+        const balance = l.original * Math.pow(1 + monthlyRate, l.pmtsMade)
+                       - l.payment * ((Math.pow(1 + monthlyRate, l.pmtsMade) - 1) / monthlyRate);
+        const paidToDate = l.payment * l.pmtsMade;
+        const now = new Date();
+        const monthsRemaining = (l.payoff.getFullYear() - now.getFullYear()) * 12
+                               + (l.payoff.getMonth() - now.getMonth());
+        const totalTerm = (l.payoff.getFullYear() - l.start.getFullYear()) * 12
+                         + (l.payoff.getMonth() - l.start.getMonth());
+        const totalInterest = (l.payment * totalTerm) - l.original;
+        return { ...l, balance: Math.max(0, balance), paidToDate, monthsRemaining: Math.max(0, monthsRemaining), totalInterest };
+      });
+
+      const now = new Date();
+      dot.className = 'status-dot';
+      txt.textContent = 'Live · '+now.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+
+      const active = document.querySelector('.page.active');
+      if(active) renderPage(active.id.replace('page-',''));
+
+    } catch(e) {
+      dot.className = 'status-dot error';
+      txt.textContent = 'Error';
+      document.getElementById('dash-err').style.display = 'block';
+      document.getElementById('dash-err').innerHTML = '<strong>Could not load data.</strong> Make sure the Apps Script is deployed with "Anyone" access. Details: '+e.message;
+    }
+  }
+
+  // ── Render Pages ──────────────────────────────────────────────────────────
+  function renderPage(name) {
+    if(name==='dashboard') renderDashboard();
+    if(name==='bookings')  renderBookings();
+    if(name==='expenses')  renderExpenses();
+    if(name==='calendar')  renderCalendar();
+    if(name==='partners')  renderPartners();
+    if(name==='loans')     renderLoans();
+  }
+
+  function renderLoans() {
+    const { loans } = DATA;
+    const totalOriginal = loans.reduce((s,l)=>s+l.original,0);
+    const totalBalance  = loans.reduce((s,l)=>s+l.balance,0);
+    const totalPaid     = loans.reduce((s,l)=>s+l.paidToDate,0);
+    const totalMonthly  = loans.reduce((s,l)=>s+l.payment,0);
+
+    const PC = {
+      'You & Brie':   {color:'#185FA5', bg:'#E6F1FB'},
+      'Jenna & Dale': {color:'#0F6E56', bg:'#E1F5EE'},
+    };
+
+    document.getElementById('loans-content').innerHTML = `
+      <div class="kpi-grid" style="margin-bottom:1.5rem;">
+        ${kpiCard('#E24B4A','Total Debt Outstanding',f$(totalBalance),'across all partners')}
+        ${kpiCard('#378ADD','Original Loan Total',f$(totalOriginal),'at origination')}
+        ${kpiCard('#1D9E75','Total Paid to Date',f$(totalPaid),'principal + interest')}
+        ${kpiCard('#534AB7','Combined Monthly Payment',f$(totalMonthly),'/month total debt service')}
+      </div>
+
+      <div class="panel" style="margin-bottom:1.5rem;">
+        <div class="panel-title">Loan balances by borrower</div>
+        <table class="data-table"><thead><tr>
+          <th style="width:14%">Partner</th>
+          <th style="width:10%">Borrower</th>
+          <th style="width:11%;text-align:right">Original</th>
+          <th style="width:11%;text-align:right">Paid to Date</th>
+          <th style="width:13%;text-align:right">Remaining</th>
+          <th style="width:10%;text-align:right">Monthly</th>
+          <th style="width:9%;text-align:center">Rate</th>
+          <th style="width:11%;text-align:center">Payoff</th>
+          <th style="width:11%;text-align:center">Mo. Left</th>
+        </tr></thead><tbody>
+        ${loans.map(l=>{
+          const pct=((l.original-l.balance)/l.original*100).toFixed(1);
+          const pc=PC[l.partner]||{color:'#888',bg:'#eee'};
+          return `<tr>
+            <td><span style="font-size:11px;font-weight:500;color:${pc.color};background:${pc.bg};padding:2px 7px;border-radius:4px">${l.partner}</span></td>
+            <td style="font-weight:500">${l.borrower}</td>
+            <td style="text-align:right">${f$(l.original)}</td>
+            <td style="text-align:right;color:var(--green)">${f$(l.paidToDate)}</td>
+            <td style="text-align:right"><div style="font-weight:500">${f$(l.balance)}</div><div style="font-size:10px;color:var(--faint)">${pct}% paid</div></td>
+            <td style="text-align:right">${f$(l.payment)}</td>
+            <td style="text-align:center">${(l.rate*100).toFixed(2)}%</td>
+            <td style="text-align:center;font-size:12px">${l.payoff.toLocaleDateString('en-US',{month:'short',year:'numeric'})}</td>
+            <td style="text-align:center">${l.monthsRemaining}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+        <tfoot><tr style="border-top:2px solid var(--border)">
+          <td colspan="2" style="font-weight:500;padding:9px 0">TOTALS</td>
+          <td style="text-align:right;font-weight:500">${f$(totalOriginal)}</td>
+          <td style="text-align:right;font-weight:500;color:var(--green)">${f$(totalPaid)}</td>
+          <td style="text-align:right;font-weight:500;color:var(--red)">${f$(totalBalance)}</td>
+          <td style="text-align:right;font-weight:500">${f$(totalMonthly)}</td>
+          <td colspan="3"></td>
+        </tr></tfoot>
+        </table>
+      </div>
+
+      <div class="panel-grid-equal">
+        ${['You & Brie','Jenna & Dale'].map(pName=>{
+          const pLoans=loans.filter(l=>l.partner===pName);
+          const pc=PC[pName]||{color:'#888',bg:'#eee'};
+          const pBal=pLoans.reduce((s,l)=>s+l.balance,0);
+          const pOrig=pLoans.reduce((s,l)=>s+l.original,0);
+          const pPct=((pOrig-pBal)/pOrig*100).toFixed(1);
+          return `<div class="panel">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+              <div style="width:10px;height:36px;border-radius:3px;background:${pc.color};flex-shrink:0"></div>
+              <div>
+                <div style="font-weight:500;font-size:15px">${pName}</div>
+                <div style="font-size:11px;color:var(--faint)">${pPct}% paid off · ${f$(pBal)} remaining</div>
+              </div>
+            </div>
+            <div style="background:#f0efeb;border-radius:6px;height:8px;margin-bottom:1rem;overflow:hidden">
+              <div style="height:100%;background:${pc.color};border-radius:6px;width:${pPct}%"></div>
+            </div>
+            ${pLoans.map(l=>{
+              const lPct=((l.original-l.balance)/l.original*100).toFixed(1);
+              return `<div style="padding:8px 0;border-bottom:1px solid var(--border)">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                  <span style="font-weight:500;font-size:13px">${l.borrower}</span>
+                  <span style="font-size:13px;color:var(--red);font-weight:500">${f$(l.balance)}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--faint)">
+                  <span>${(l.rate*100).toFixed(2)}% · ${f$(l.payment)}/mo</span>
+                  <span>${lPct}% paid · ${l.monthsRemaining} mo left</span>
+                </div>
+              </div>`;
+            }).join('')}
+            <div style="display:flex;justify-content:space-between;padding-top:10px;font-size:13px">
+              <span style="color:var(--muted)">Combined monthly</span>
+              <span style="font-weight:500">${f$(pLoans.reduce((s,l)=>s+l.payment,0))}</span>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <div class="panel" style="margin-top:14px;">
+        <div class="panel-title">Liz</div>
+        <div style="font-size:13px;color:var(--muted);padding:0.5rem 0">
+          Liz purchased the property in cash ($60,000). No loan to track. ✓
+        </div>
+      </div>`;
+  }
+
+  function renderDashboard() {
+    const { bookings, expenses, startup } = DATA;
+    const allExp = [...expenses, ...startup];
+    const now = new Date();
+    const ytdRev = bookings.reduce((s,b)=>s+b.net,0);
+    const ytdExp = allExp.reduce((s,e)=>s+e.amount,0);
+    const ytdPro = ytdRev - ytdExp;
+    const nights = bookings.reduce((s,b)=>s+b.nights,0);
+    const days   = Math.max(1,Math.floor((now-new Date('2026-05-22'))/86400000));
+    const occ    = nights/days;
+    const avg    = bookings.length ? bookings.reduce((s,b)=>s+(b.gross/Math.max(b.nights,1)),0)/bookings.length : 0;
+
+    const mo = MONTHS.map(x=>({...x,rev:0,nts:0}));
+    bookings.forEach(b=>{
+      if(!b.checkin) return;
+      const m=mo.find(x=>x.m===b.checkin.getMonth()+1);
+      if(m){m.rev+=b.net;m.nts+=b.nights;}
+    });
+
+    const ct={};
+    allExp.forEach(e=>{ct[e.category]=(ct[e.category]||0)+e.amount;});
+    const maxC=Math.max(...Object.values(ct),1);
+
+    const rec=[...bookings].sort((a,b)=>(b.checkin||0)-(a.checkin||0)).slice(0,5);
+
+    document.getElementById('dash-content').innerHTML = `
+      <div class="kpi-grid">
+        ${kpiCard('#1D9E75','YTD Revenue',f$(ytdRev),bookings.length+' bookings · '+nights+' nights')}
+        ${kpiCard('#E24B4A','YTD Expenses',f$(ytdExp),allExp.length+' line items')}
+        ${kpiCard(ytdPro>=0?'#1D9E75':'#E24B4A','Net Profit','<span class="'+(ytdPro>=0?'pos':'neg')+'">'+f$(ytdPro)+'</span>',fp(ytdRev?ytdPro/ytdRev:0)+' margin')}
+        ${kpiCard('#378ADD','Occupancy',fp(occ),nights+' of '+days+' days booked')}
+        ${kpiCard('#BA7517','Avg Nightly Rate',f$(avg),'gross per night')}
+        ${kpiCard('#534AB7','Per Share (1/3)','<span class="'+(ytdPro>=0?'pos':'neg')+'">'+f$(ytdPro/3)+'</span>','net per household')}
+      </div>
+
+      <div class="panel-grid">
+        <div class="panel">
+          <div class="panel-title">Monthly revenue &amp; occupancy</div>
+          ${mo.map(m=>`
+            <div class="month-row">
+              <span class="month-name">${m.n}</span>
+              <div class="bar-wrap"><div class="bar" style="width:${Math.min(100,(m.nts/m.d)*100).toFixed(1)}%"></div></div>
+              <span class="month-nights">${m.nts>0?m.nts+'n':''}</span>
+              <span class="month-rev">${m.rev>0?f$(m.rev):'—'}</span>
+            </div>`).join('')}
+        </div>
+        <div class="panel">
+          <div class="panel-title">Expenses by category</div>
+          ${Object.keys(ct).length===0
+            ? '<div class="empty-note">No expenses logged yet.</div>'
+            : Object.entries(ct).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>`
+              <div class="cat-row">
+                <span class="cat-name">${cat}</span>
+                <div class="cat-bar-wrap"><div class="cat-bar" style="width:${((amt/maxC)*100).toFixed(1)}%;background:${CC[cat]||'#888'}"></div></div>
+                <span class="cat-amt">${f$(amt)}</span>
+              </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Recent bookings</div>
+        ${rec.length===0
+          ? '<div class="empty-note">No bookings yet — add them to your Google Sheet.</div>'
+          : `<table class="data-table"><thead><tr>
+              <th style="width:26%">Guest</th>
+              <th style="width:20%">Check-in</th>
+              <th style="width:20%">Check-out</th>
+              <th style="width:9%">Nights</th>
+              <th style="width:13%">Platform</th>
+              <th style="width:12%;text-align:right">Net</th>
+            </tr></thead><tbody>
+            ${rec.map(b=>`<tr>
+              <td>${b.guest||'—'}</td>
+              <td>${fDate(b.checkin)}</td>
+              <td>${fDate(b.checkout)}</td>
+              <td>${b.nights||'—'}</td>
+              <td><span class="badge">${b.platform||'—'}</span></td>
+              <td style="text-align:right;font-weight:500">${f$(b.net)}</td>
+            </tr>`).join('')}
+            </tbody></table>`}
+      </div>`;
+  }
+
+  function kpiCard(ac, lb, vl, sb) {
+    return `<div class="kpi-card">
+      <div class="kpi-accent" style="background:${ac}"></div>
+      <div class="kpi-label">${lb}</div>
+      <div class="kpi-value">${vl}</div>
+      <div class="kpi-sub">${sb}</div>
+    </div>`;
+  }
+
+  function renderBookings() {
+    const { bookings } = DATA;
+    const sorted = [...bookings].sort((a,b)=>(b.checkin||0)-(a.checkin||0));
+    document.getElementById('bookings-content').innerHTML = sorted.length===0
+      ? '<div class="empty-note">No bookings logged yet.</div>'
+      : `<table class="data-table"><thead><tr>
+          <th style="width:8%">ID</th>
+          <th style="width:20%">Guest</th>
+          <th style="width:16%">Check-in</th>
+          <th style="width:16%">Check-out</th>
+          <th style="width:7%">Nights</th>
+          <th style="width:12%">Platform</th>
+          <th style="width:10%;text-align:right">Gross</th>
+          <th style="width:11%;text-align:right">Net</th>
+        </tr></thead><tbody>
+        ${sorted.map(b=>`<tr>
+          <td style="color:#9a9a96">${b.id||'—'}</td>
+          <td>${b.guest||'—'}</td>
+          <td>${fDate(b.checkin)}</td>
+          <td>${fDate(b.checkout)}</td>
+          <td>${b.nights||'—'}</td>
+          <td><span class="badge">${b.platform||'—'}</span></td>
+          <td style="text-align:right">${f$(b.gross)}</td>
+          <td style="text-align:right;font-weight:500">${f$(b.net)}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+  }
+
+  function renderExpenses() {
+    const { expenses, startup } = DATA;
+    const allExp = [
+      ...expenses.map(e=>({...e, type:'Operating'})),
+      ...startup.map(e=>({...e, type:'Startup', recurring:'One-time'}))
+    ].sort((a,b)=>(b.date||0)-(a.date||0));
+
+    const opTotal = expenses.reduce((s,e)=>s+e.amount,0);
+    const suTotal = startup.reduce((s,e)=>s+e.amount,0);
+
+    document.getElementById('expenses-content').innerHTML = allExp.length===0
+      ? '<div class="empty-note">No expenses logged yet.</div>'
+      : `<div style="display:flex;gap:12px;margin-bottom:1.25rem;padding-bottom:1.25rem;border-bottom:1px solid var(--border)">
+          <div style="flex:1;background:var(--bg);border-radius:8px;padding:0.75rem 1rem;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Operating Expenses</div>
+            <div style="font-size:20px;font-family:'DM Serif Display',serif;color:var(--text)">${f$(opTotal)}</div>
+            <div style="font-size:11px;color:var(--faint)">${expenses.length} items</div>
+          </div>
+          <div style="flex:1;background:var(--bg);border-radius:8px;padding:0.75rem 1rem;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Startup Costs</div>
+            <div style="font-size:20px;font-family:'DM Serif Display',serif;color:var(--text)">${f$(suTotal)}</div>
+            <div style="font-size:11px;color:var(--faint)">${startup.length} items</div>
+          </div>
+          <div style="flex:1;background:var(--bg);border-radius:8px;padding:0.75rem 1rem;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted);margin-bottom:4px">Total All Expenses</div>
+            <div style="font-size:20px;font-family:'DM Serif Display',serif;color:var(--red)">${f$(opTotal+suTotal)}</div>
+            <div style="font-size:11px;color:var(--faint)">${allExp.length} items combined</div>
+          </div>
+        </div>
+        <table class="data-table"><thead><tr>
+          <th style="width:13%">Date</th>
+          <th style="width:12%">Type</th>
+          <th style="width:13%">Category</th>
+          <th style="width:30%">Description</th>
+          <th style="width:12%;text-align:right">Amount</th>
+          <th style="width:10%">Paid By</th>
+          <th style="width:10%">Recurring</th>
+        </tr></thead><tbody>
+        ${allExp.map(e=>`<tr>
+          <td>${fDate(e.date)}</td>
+          <td><span class="badge" style="border-color:${e.type==='Startup'?'#BA7517':'#378ADD'};color:${e.type==='Startup'?'#BA7517':'#378ADD'}">${e.type}</span></td>
+          <td><span class="badge" style="border-color:${CC[e.category]||'#888'};color:${CC[e.category]||'#888'}">${e.category}</span></td>
+          <td>${e.desc||'—'}</td>
+          <td style="text-align:right;font-weight:500">${f$(e.amount)}</td>
+          <td>${e.paidBy||'—'}</td>
+          <td style="color:#9a9a96">${e.recurring||'—'}</td>
+        </tr>`).join('')}
+        </tbody></table>`;
+  }
+
+  // ── Calendar ──────────────────────────────────────────────────────────────
+  let calYear = 2026, calMonth = 4; // 0-indexed, May=4
+
+  function renderCalendar() {
+    const bookedDates = new Set();
+    DATA.bookings.forEach(b => {
+      if(!b.checkin || !b.checkout) return;
+      let d = new Date(b.checkin);
+      while(d < b.checkout) {
+        bookedDates.add(d.toDateString());
+        d.setDate(d.getDate()+1);
+      }
+    });
+
+    const today = new Date();
+    const firstDay = new Date(calYear, calMonth, 1);
+    const lastDay  = new Date(calYear, calMonth+1, 0);
+    const startDow = firstDay.getDay();
+    const monthName = firstDay.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+
+    let days = '';
+    for(let i=0;i<startDow;i++) days += '<div class="cal-day empty"></div>';
+    for(let d=1;d<=lastDay.getDate();d++) {
+      const date = new Date(calYear, calMonth, d);
+      const isBooked = bookedDates.has(date.toDateString());
+      const isToday  = date.toDateString()===today.toDateString();
+      days += `<div class="cal-day${isBooked?' booked':''}${isToday?' today':''}">${d}</div>`;
+    }
+
+    const totalNights = DATA.bookings.reduce((s,b)=>{
+      if(!b.checkin||!b.checkout) return s;
+      const inM = b.checkin.getMonth()===calMonth&&b.checkin.getFullYear()===calYear;
+      return inM ? s+b.nights : s;
+    },0);
+
+    document.getElementById('calendar-content').innerHTML = `
+      <div class="cal-month-nav">
+        <button class="cal-nav-btn" onclick="calNav(-1)">← Prev</button>
+        <div class="cal-month-title">${monthName}</div>
+        <button class="cal-nav-btn" onclick="calNav(1)">Next →</button>
+      </div>
+      <div class="cal-header">
+        ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-day-name">${d}</div>`).join('')}
+      </div>
+      <div class="cal-grid">${days}</div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--green)"></div> Booked (${totalNights} nights this month)</div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#f0efeb"></div> Available</div>
+      </div>`;
+  }
+
+  function calNav(dir) {
+    calMonth += dir;
+    if(calMonth>11){calMonth=0;calYear++;}
+    if(calMonth<0){calMonth=11;calYear--;}
+    renderCalendar();
+  }
+
+  // ── Partners ──────────────────────────────────────────────────────────────
+  function renderPartners() {
+    const { bookings, expenses, startup } = DATA;
+    const allExp = [...expenses, ...startup];
+    const ytdRev = bookings.reduce((s,b)=>s+b.net,0);
+    const ytdExp = allExp.reduce((s,e)=>s+e.amount,0);
+    const ytdPro = ytdRev - ytdExp;
+
+    const partners = [
+      {name:'You & Brie',  initials:'YB', color:'#185FA5', bg:'#E6F1FB', cap:60000, members:'You ($40k) + Brie ($20k)'},
+      {name:'Jenna & Dale',initials:'JD', color:'#0F6E56', bg:'#E1F5EE', cap:60000, members:'Jenna ($20k) + Dale ($40k)'},
+      {name:'Liz',         initials:'LZ', color:'#BA7517', bg:'#FAEEDA', cap:60000, members:'Liz ($60k cash)'}
+    ].map(p=>({...p, net:ytdPro/3, rev:ytdRev/3, exp:ytdExp/3, roi:(ytdPro/3)/p.cap}));
+
+    document.getElementById('partners-content').innerHTML = `
+      <div class="panel-grid-equal">
+        ${partners.map(p=>`
+          <div class="panel">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:1px solid var(--border)">
+              <div class="avatar" style="width:42px;height:42px;background:${p.bg};color:${p.color};font-size:13px">${p.initials}</div>
+              <div>
+                <div style="font-weight:500;font-size:15px">${p.name}</div>
+                <div style="font-size:11px;color:var(--faint)">${p.members}</div>
+              </div>
+            </div>
+            ${partnerStat('Capital In', f$(p.cap))}
+            ${partnerStat('Ownership', '1/3 (33.3%)')}
+            ${partnerStat('Share of Revenue', f$(p.rev), 'pos')}
+            ${partnerStat('Share of Expenses', f$(p.exp), 'neg')}
+            ${partnerStat('Net Return', f$(p.net), p.net>=0?'pos':'neg')}
+            ${partnerStat('ROI', (p.roi*100).toFixed(2)+'%', p.roi>=0?'pos':'neg')}
+          </div>`).join('')}
+      </div>
+
+      <div class="panel">
+        <div class="panel-title">Total capital breakdown</div>
+        <div style="display:flex;gap:0;border-radius:8px;overflow:hidden;height:12px;margin-bottom:12px">
+          <div style="flex:1;background:#185FA5" title="You & Brie"></div>
+          <div style="flex:1;background:#0F6E56" title="Jenna & Dale"></div>
+          <div style="flex:1;background:#BA7517" title="Liz"></div>
+        </div>
+        <div style="display:flex;gap:20px;font-size:12px;color:var(--muted)">
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#185FA5;display:inline-block"></span>You & Brie — $60k</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#0F6E56;display:inline-block"></span>Jenna & Dale — $60k</span>
+          <span style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:2px;background:#BA7517;display:inline-block"></span>Liz — $60k</span>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--muted)">Total capital: <strong style="color:var(--text)">$180,000</strong></div>
+      </div>`;
+  }
+
+  function partnerStat(label, value, cls='') {
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">
+      <span style="color:var(--muted)">${label}</span>
+      <span class="${cls}" style="font-weight:500">${value}</span>
+    </div>`;
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  loadData();
+</script>
+</body>
+</html>
