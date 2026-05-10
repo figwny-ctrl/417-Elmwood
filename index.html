@@ -560,6 +560,26 @@
 
 <script>
   const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbw095qquZbR6F23dtvx1OJsCrcOuyHFwoiYRfU8197XMp_Hy8mwhRV2YYoO8HSKydfdpQ/exec';
+  const HOSPITABLE_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI5YTYyNGRmMC0xMmYxLTQ0OGUtYjg4NC00MzY3ODBhNWQzY2QiLCJqdGkiOiJjODY4YmZkODhjMDI1MTE1Mzc3ZjllNWRmN2Q1ZjMyMTY0OTBiNjE4MjlhNTE5N2IyZDcwYmNiYWY4MjkxODJiODMzZDVhMWZmNDE5MWNjMyIsImlhdCI6MTc3ODQzOTE5OS40NDI0MiwibmJmIjoxNzc4NDM5MTk5LjQ0MjQyMywiZXhwIjoxODA5OTc1MTk5LjQzODk0Niwic3ViIjoiNDkzMzcwIiwic2NvcGVzIjpbInBhdDpyZWFkIiwicGF0OndyaXRlIl19.TUGMatXtLdRQ2icupd2fS39M270O2lsjYNnTeixiVe74pw-P9fmcV8T5ibBt1u1qE_fn5AVGthTjIc31DinZvLcUrWL8xuwZSCauHu6vL2zXUCtUCREubH6k05a4dNMKIIZC0rVuEY2pWRpeH2udhMAqvtZ5Dli0lVFSFrp6bxnqfJ_hDeQ4Hx89Xo8hiJzAn7dKAKGwjQyB714pa3GVJV4hbYjpO46865k4wjaVQ09pile-QaQQfLdr9oRJTuR1-wYBH2VFosUVlJdFO9tnuAJvakSKzUxqXRlMhMotGL7wuEAzktI2CYoetqx61UYraUN0tPdG-x1W-B8UTWCmVbpXlMfzolo--wcPPdCxW45S1rzNh4Iut1GLOdNXPFPc0Z1I2l3iGpqabp_Iu17SIihnoXm4F2uM5DchG6kpvTcCi0eD1vlEFXk6QHwF76eGggL7GpznvhAXHrRy_y5j8cIFigblHSW8ViQ9_0YpqWwSvBs1IMpRiiec19BhHpUH79AL7NBWJjPyS1NizclfYlpWDB6QLOk35HPSbyvaZfmSrKDkC_bM2G4AM8W56A09co9wLF728Og0WAvGp1WIpOjudCgjPdLV4QWHHn81LQPt94hZJFHiDhW_LWZwp23hmJk3NxyHq1mHOfojmOnARt0HZlLe_rhGqglxPRpdjR4';
+
+  async function fetchHospitable() {
+    try {
+      const resp = await fetch('https://api.hospitable.com/v2/reservations?limit=50', {
+        method: 'GET',
+        headers: {
+          'Authorization': 'Bearer ' + HOSPITABLE_TOKEN,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        }
+      });
+      if (!resp.ok) throw new Error('Hospitable API returned ' + resp.status);
+      const data = await resp.json();
+      return data;
+    } catch(e) {
+      console.log('Hospitable fetch error:', e.message);
+      return null;
+    }
+  }
 
   let DATA = { bookings: [], expenses: [], startup: [], loans: [] };
 
@@ -597,6 +617,7 @@
     txt.textContent = 'Loading...';
 
     try {
+      // Fetch sheet data first — this is critical
       const resp = await fetch(SCRIPT_URL, { redirect: 'follow' });
       if(!resp.ok) throw new Error('HTTP ' + resp.status);
       const raw = await resp.text();
@@ -607,6 +628,7 @@
       const bkRows = (json.bookings||[]).filter(r=>r[0]&&String(r[0]).trim()&&String(r[0])!=='Booking #');
       const exRows = (json.expenses||[]).filter(r=>r[0]&&r[3]&&String(r[0])!=='Date');
       const suRows = (json.startup||[]).filter(r=>r[0]&&r[3]&&String(r[0])!=='Date');
+      const lnRows = (json.loans||[]).filter(r=>r[0]&&String(r[0]).trim());
 
       DATA.bookings = bkRows.map(r=>({
         id:r[0], guest:r[1]||'',
@@ -628,26 +650,41 @@
         paidBy:r[4]||'', type:'Startup'
       })).filter(e=>e.amount>0);
 
-      // Hardcoded loan data — matches the loan tracker sheet
-      DATA.loans = [
-        { partner:'You & Brie',   borrower:'Kevin', original:40000, rate:0.2299, start:new Date('2025-04-15'), payment:969.51,  payoff:new Date('2032-02-01'), pmtsMade:12, notes:'Personal loan' },
-        { partner:'You & Brie',   borrower:'Brie',  original:20000, rate:0.1399, start:new Date('2025-07-05'), payment:375.70,  payoff:new Date('2032-06-01'), pmtsMade:10, notes:'Split 50/50 with Jenna' },
-        { partner:'Jenna & Dale', borrower:'Jenna', original:20000, rate:0.1399, start:new Date('2025-07-05'), payment:375.70,  payoff:new Date('2032-06-01'), pmtsMade:10, notes:'Split 50/50 with Brie' },
-        { partner:'Jenna & Dale', borrower:'Dale',  original:40000, rate:0.22,   start:new Date('2025-03-30'), payment:1156.30, payoff:new Date('2030-03-20'), pmtsMade:12, notes:'Confirmed' },
-      ].map(l => {
-        // Calculate remaining balance using FV formula
-        const monthlyRate = l.rate / 12;
-        const balance = l.original * Math.pow(1 + monthlyRate, l.pmtsMade)
-                       - l.payment * ((Math.pow(1 + monthlyRate, l.pmtsMade) - 1) / monthlyRate);
-        const paidToDate = l.payment * l.pmtsMade;
-        const now = new Date();
-        const monthsRemaining = (l.payoff.getFullYear() - now.getFullYear()) * 12
-                               + (l.payoff.getMonth() - now.getMonth());
-        const totalTerm = (l.payoff.getFullYear() - l.start.getFullYear()) * 12
-                         + (l.payoff.getMonth() - l.start.getMonth());
-        const totalInterest = (l.payment * totalTerm) - l.original;
-        return { ...l, balance: Math.max(0, balance), paidToDate, monthsRemaining: Math.max(0, monthsRemaining), totalInterest };
-      });
+      // Pull loan data live from sheet
+      DATA.loans = lnRows.map(r=>({
+        partner:  r[0]||'',
+        borrower: r[1]||'',
+        original: pn(r[2]),
+        rate:     pn(r[3]),
+        start:    pd(r[4]),
+        payment:  pn(r[5]),
+        payoff:   pd(r[6]),
+        pmtsMade: pn(r[7]),
+        paidToDate: pn(r[8]),
+        balance:  Math.max(0, pn(r[9])),
+        monthsRemaining: pn(r[10]),
+        totalInterest: pn(r[11])
+      })).filter(l=>l.borrower&&l.original>0);
+
+      // Try Hospitable separately — failure here never breaks the dashboard
+      DATA.hospitable = [];
+      try {
+        const hospitableData = await fetchHospitable();
+        if(hospitableData && hospitableData.data && hospitableData.data.length > 0) {
+          DATA.hospitable = hospitableData.data.map(r=>({
+            id:       r.id||'',
+            guest:    r.guest ? ((r.guest.first_name||'') + ' ' + (r.guest.last_name||'')).trim() : 'Guest',
+            checkin:  pd(r.check_in),
+            checkout: pd(r.check_out),
+            nights:   r.nights||0,
+            gross:    pn(r.money ? r.money.host_payout : 0),
+            platform: r.platform||'',
+            status:   r.status||''
+          })).filter(r=>r.checkin);
+        }
+      } catch(hospErr) {
+        console.log('Hospitable unavailable:', hospErr.message);
+      }
 
       const now = new Date();
       dot.className = 'status-dot';
@@ -659,8 +696,8 @@
     } catch(e) {
       dot.className = 'status-dot error';
       txt.textContent = 'Error';
-      document.getElementById('dash-err').style.display = 'block';
-      document.getElementById('dash-err').innerHTML = '<strong>Could not load data.</strong> Make sure the Apps Script is deployed with "Anyone" access. Details: '+e.message;
+      const errEl = document.getElementById('dash-err');
+      if(errEl) { errEl.style.display='block'; errEl.innerHTML='<strong>Could not load data.</strong> Details: '+e.message; }
     }
   }
 
@@ -874,10 +911,37 @@
   }
 
   function renderBookings() {
-    const { bookings } = DATA;
+    const { bookings, hospitable } = DATA;
     const sorted = [...bookings].sort((a,b)=>(b.checkin||0)-(a.checkin||0));
-    document.getElementById('bookings-content').innerHTML = sorted.length===0
-      ? '<div class="empty-note">No bookings logged yet.</div>'
+
+    const hospSection = hospitable && hospitable.length > 0 ? `
+      <div style="margin-bottom:1.5rem;">
+        <div class="panel-title" style="margin-bottom:1rem;">Live from Hospitable — ${hospitable.length} reservation${hospitable.length!==1?'s':''}</div>
+        <table class="data-table"><thead><tr>
+          <th style="width:25%">Guest</th>
+          <th style="width:18%">Check-in</th>
+          <th style="width:18%">Check-out</th>
+          <th style="width:10%">Nights</th>
+          <th style="width:14%">Platform</th>
+          <th style="width:15%;text-align:right">Payout</th>
+        </tr></thead><tbody>
+        ${hospitable.sort((a,b)=>(b.checkin||0)-(a.checkin||0)).map(r=>`<tr>
+          <td style="font-weight:500">${r.guest}</td>
+          <td>${fDate(r.checkin)}</td>
+          <td>${fDate(r.checkout)}</td>
+          <td>${r.nights||'—'}</td>
+          <td><span class="badge">${r.platform||'—'}</span></td>
+          <td style="text-align:right;font-weight:500">${r.gross>0?f$(r.gross):'—'}</td>
+        </tr>`).join('')}
+        </tbody></table>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:1.25rem;margin-top:0.5rem;">
+        <div class="panel-title" style="margin-bottom:1rem;">Manual bookings from Google Sheet</div>` : '';
+
+    const hospClose = hospitable && hospitable.length > 0 ? '</div>' : '';
+
+    document.getElementById('bookings-content').innerHTML = hospSection + (sorted.length===0
+      ? '<div class="empty-note">No manual bookings logged yet.</div>'
       : `<table class="data-table"><thead><tr>
           <th style="width:8%">ID</th>
           <th style="width:20%">Guest</th>
@@ -898,7 +962,8 @@
           <td style="text-align:right">${f$(b.gross)}</td>
           <td style="text-align:right;font-weight:500">${f$(b.net)}</td>
         </tr>`).join('')}
-        </tbody></table>`;
+        </tbody></table>`) + hospClose;
+  }
   }
 
   function renderExpenses() {
@@ -956,7 +1021,8 @@
 
   function renderCalendar() {
     const bookedDates = new Set();
-    DATA.bookings.forEach(b => {
+    const allBookings = [...DATA.bookings, ...DATA.hospitable];
+    allBookings.forEach(b => {
       if(!b.checkin || !b.checkout) return;
       let d = new Date(b.checkin);
       while(d < b.checkout) {
